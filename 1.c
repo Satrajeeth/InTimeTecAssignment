@@ -1,101 +1,154 @@
+#include <stdbool.h>
 #include <stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
-#define MAX 100
+#define MAX_BUFFER_SIZE 100
 
 //Remove White spaces
-void RW(char *s){
-    int i=0,j=0;
-    while(s[i]){
-        if(!isspace(s[i])){
-            s[j++]=s[i];
+void removeWhitespace(char* str)
+{
+    int readIndex = 0;
+    int writeIndex = 0;
+
+    while (str[readIndex])
+    {
+        if (!isspace((unsigned char)str[readIndex]))
+        {
+            str[writeIndex++] = str[readIndex];
         }
-        i++;
+        readIndex++;
     }
-    s[j]='\0';
+    str[writeIndex] = '\0';
 }
 
-int VE(const char *s){
-    for(int i=0;s[i];i++){
-        if(!(isdigit(s[i]) || s[i]=='+' || s[i]=='-' || s[i]=='*' || s[i]=='/')){
-            return 0;
+bool isValidExpression(const char* str)
+{
+    for (int i = 0; str[i]; i++)
+    {
+        if (!(isdigit((unsigned char)str[i]) || str[i] == '+' || str[i] == '-' ||
+              str[i] == '*' || str[i] == '/'))
+        {
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
-int calculate(char *expr , int *error){
-    int nums[MAX];
-    int ops[MAX];
-    int n=0, o=0,i=0;
+int calculateExpression(char* expression, int* errorCode)
+{
+    int numbers[MAX_BUFFER_SIZE];
+    int operators[MAX_BUFFER_SIZE];
+    int numbersCount = 0;
+    int operatorsCount = 0;
+    int index = 0;
 
-    while(expr[i]){
-        if(isdigit(expr[i])){
-            int num=0;
-            while(isdigit(expr[i])){
-                num=num*10+(expr[i]-'0');
-                i++;
+    while (expression[index])
+    {
+        if (isdigit((unsigned char)expression[index]))
+        {
+            int value = 0;
+            while (isdigit((unsigned char)expression[index]))
+            {
+                value = value * 10 + (expression[index] - '0');
+                index++;
             }
-            nums[n++]=num;
-        }else{
-            if(expr[i]=='+' || expr[i]=='-' || expr[i]=='*' || expr[i]=='/'){
-                ops[o++]=expr[i];
-                i++;
+            numbers[numbersCount++] = value;
+        }
+        else
+        {
+            if (expression[index] == '+' || expression[index] == '-' ||
+                expression[index] == '*' || expression[index] == '/')
+            {
+                operators[operatorsCount++] = expression[index];
+                index++;
+            }
+            else
+            {
+                index++;
             }
         }
     }
-    for(int j=0;j<o;){
-        if(ops[j]=='*' || ops[j]=='/'){
-            if(ops[j]=='*'){
-                nums[j]=nums[j]*nums[j+1];
-            }else{
-                if(nums[j+1]==0){
-                    *error = 2; 
+
+    for (int j = 0; j < operatorsCount;)
+    {
+        if (operators[j] == '*' || operators[j] == '/')
+        {
+            if (operators[j] == '*')
+            {
+                numbers[j] = numbers[j] * numbers[j + 1];
+            }
+            else
+            {
+                if (numbers[j + 1] == 0)
+                {
+                    *errorCode = 2;
                     return 0;
                 }
-                nums[j]=nums[j]/nums[j+1];
+                numbers[j] = numbers[j] / numbers[j + 1];
             }
-            for(int k=j+1;k<n-1;k++)
-                nums[k]=nums[k+1];
-            for(int k=j;k<o-1;k++)
-                ops[k]=ops[k+1];
-            n--;
-            o--;
+
+            for (int k = j + 1; k < numbersCount - 1; k++)
+            {
+                numbers[k] = numbers[k + 1];
+            }
+            for (int k = j; k < operatorsCount - 1; k++)
+            {
+                operators[k] = operators[k + 1];
+            }
+            numbersCount--;
+            operatorsCount--;
         }
-        else{
+        else
+        {
             j++;
         }
     }
-    int result=nums[0];
-    for(int j=0;j<o;j++){
-        if(ops[j]=='+')
-            result+=nums[j+1];
+
+    int result = numbers[0];
+    for (int j = 0; j < operatorsCount; j++)
+    {
+        if (operators[j] == '+')
+        {
+            result += numbers[j + 1];
+        }
         else
-            result-=nums[j+1];
+        {
+            result -= numbers[j + 1];
+        }
     }
+
     return result;
 }
 
-int main(){
-    char input[MAX];
-    fgets(input,sizeof(input),stdin);
-
-    input[strcspn(input,"\n")]=0;
-
-    RW(input);
-
-    if(!VE(input) || strlen(input)==0){
-        printf("Error: INvalid expression. \n");
+int main(void)
+{
+    char inputBuffer[MAX_BUFFER_SIZE];
+    if (!fgets(inputBuffer, sizeof(inputBuffer), stdin))
+    {
         return 0;
     }
-    int error=0;
-    int result=calculate(input,&error);
-    if(error==2){
+
+    inputBuffer[strcspn(inputBuffer, "\n")] = 0;
+
+    removeWhitespace(inputBuffer);
+
+    if (!isValidExpression(inputBuffer) || strlen(inputBuffer) == 0)
+    {
+        printf("Error: Invalid expression.\n");
+        return 0;
+    }
+
+    int errorCode = 0;
+    int result = calculateExpression(inputBuffer, &errorCode);
+
+    if (errorCode == 2)
+    {
         printf("Error: Division by zero.\n");
         return 0;
     }
-    printf("%d\n",result);
+
+    printf("%d\n", result);
     return 0;
 }
