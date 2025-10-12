@@ -1,0 +1,14 @@
+Roll: 1
+Name: Arti
+Total: 250
+Average: 83.33
+Grade: B
+Performance: ****
+
+Roll: 2
+Name: Meena
+Total: 95
+Average: 31.67
+Grade: F
+
+List of Roll Numbers: 1 2
