@@ -20,12 +20,12 @@ void generateMatrix(int** matrixPtr, int size)
         return;
     }
 
-    for (int i = 0; i < size; ++i)
+    for (int rowIndex = 0; rowIndex < size; ++rowIndex)
     {
-        int* rowPtr = matrixPtr[i];
-        for (int j = 0; j < size; ++j)
+        int* rowPtr = matrixPtr[rowIndex];
+        for (int colIndex = 0; colIndex < size; ++colIndex)
         {
-            rowPtr[j] = rand() % MAX_RANDOM_VALUE;
+            rowPtr[colIndex] = rand() % MAX_RANDOM_VALUE;
         }
     }
 }
@@ -37,12 +37,12 @@ void displayMatrix(int* const* matrixPtr, int size)
         return;
     }
 
-    for (int i = 0; i < size; ++i)
+    for (int rowIndex = 0; rowIndex < size; ++rowIndex)
     {
-        const int* rowPtr = matrixPtr[i];
-        for (int j = 0; j < size; ++j)
+        const int* rowPtr = matrixPtr[rowIndex];
+        for (int colIndex = 0; colIndex < size; ++colIndex)
         {
-            printf("%3d ", rowPtr[j]);
+            printf("%3d ", rowPtr[colIndex]);
         }
         printf("\n");
     }
@@ -56,22 +56,22 @@ void rotateMatrix(int** matrixPtr, int size)
     }
 
     // Transpose
-    for (int i = 0; i < size; ++i)
+    for (int rowIndex = 0; rowIndex < size; ++rowIndex)
     {
-        for (int j = i + 1; j < size; ++j)
+        for (int colIndex = rowIndex + 1; colIndex < size; ++colIndex)
         {
-            int temp = matrixPtr[i][j];
-            matrixPtr[i][j] = matrixPtr[j][i];
-            matrixPtr[j][i] = temp;
+            int tempValue = matrixPtr[rowIndex][colIndex];
+            matrixPtr[rowIndex][colIndex] = matrixPtr[colIndex][rowIndex];
+            matrixPtr[colIndex][rowIndex] = tempValue;
         }
     }
 
     // Reverse rows
-    for (int i = 0; i < size / 2; ++i)
+    for (int rowIndex = 0; rowIndex < size / 2; ++rowIndex)
     {
-        int* temp = matrixPtr[i];
-        matrixPtr[i] = matrixPtr[size - 1 - i];
-        matrixPtr[size - 1 - i] = temp;
+        int* tempRowPtr = matrixPtr[rowIndex];
+        matrixPtr[rowIndex] = matrixPtr[size - 1 - rowIndex];
+        matrixPtr[size - 1 - rowIndex] = tempRowPtr;
     }
 }
 
@@ -82,63 +82,64 @@ void applySmoothingFilter(int** matrixPtr, int size)
         return;
     }
 
-    int* tempRow = malloc(size * sizeof(int));
-    int* prevRow = malloc(size * sizeof(int));
+    int* previousRowPtr = malloc(size * sizeof(int));
+    int* backupRowPtr = malloc(size * sizeof(int));
 
-    if (tempRow == NULL || prevRow == NULL)
+    if (previousRowPtr == NULL || backupRowPtr == NULL)
     {
         fprintf(stderr, "Error: Memory allocation failed in smoothing filter.\n");
-        free(tempRow);
-        free(prevRow);
+        free(previousRowPtr);
+        free(backupRowPtr);
         return;
     }
 
-    for (int i = 0; i < size; ++i)
+    for (int rowIndex = 0; rowIndex < size; ++rowIndex)
     {
-        int* currentRow = matrixPtr[i];
-        int* nextRow = (i < size - 1) ? matrixPtr[i + 1] : NULL;
+        int* currentRowPtr = matrixPtr[rowIndex];
+        int* nextRowPtr = (rowIndex < size - 1) ? matrixPtr[rowIndex + 1] : NULL;
 
         // Backup current row
-        for (int j = 0; j < size; ++j)
+        for (int colIndex = 0; colIndex < size; ++colIndex)
         {
-            tempRow[j] = currentRow[j];
+            backupRowPtr[colIndex] = currentRowPtr[colIndex];
         }
 
-        for (int j = 0; j < size; ++j)
+        for (int colIndex = 0; colIndex < size; ++colIndex)
         {
-            int sum = 0;
-            int count = 0;
+            int sumValue = 0;
+            int neighborCount = 0;
 
-            for (int di = -1; di <= 1; ++di)
+            for (int rowOffset = -1; rowOffset <= 1; ++rowOffset)
             {
-                for (int dj = -1; dj <= 1; ++dj)
+                for (int colOffset = -1; colOffset <= 1; ++colOffset)
                 {
-                    int ni = i + di;
-                    int nj = j + dj;
+                    int neighborRowIndex = rowIndex + rowOffset;
+                    int neighborColIndex = colIndex + colOffset;
 
-                    if (ni >= 0 && ni < size && nj >= 0 && nj < size)
+                    if (neighborRowIndex >= 0 && neighborRowIndex < size &&
+                        neighborColIndex >= 0 && neighborColIndex < size)
                     {
-                        int value = (ni == i - 1) ? prevRow[nj] :
-                                    (ni == i)     ? tempRow[nj] :
-                                                    nextRow[nj];
+                        int neighborValue = (neighborRowIndex == rowIndex - 1) ? previousRowPtr[neighborColIndex] :
+                                            (neighborRowIndex == rowIndex)     ? backupRowPtr[neighborColIndex] :
+                                                                                nextRowPtr[neighborColIndex];
 
-                        sum += value;
-                        ++count;
+                        sumValue += neighborValue;
+                        ++neighborCount;
                     }
                 }
             }
 
-            currentRow[j] = sum / count;
+            currentRowPtr[colIndex] = sumValue / neighborCount;
         }
 
-        for (int j = 0; j < size; ++j)
+        for (int colIndex = 0; colIndex < size; ++colIndex)
         {
-            prevRow[j] = tempRow[j];
+            previousRowPtr[colIndex] = backupRowPtr[colIndex];
         }
     }
 
-    free(tempRow);
-    free(prevRow);
+    free(previousRowPtr);
+    free(backupRowPtr);
 }
 
 void freeMatrix(int** matrixPtr, int size)
@@ -148,10 +149,10 @@ void freeMatrix(int** matrixPtr, int size)
         return;
     }
 
-    for (int i = 0; i < size; ++i)
+    for (int rowIndex = 0; rowIndex < size; ++rowIndex)
     {
-        free(matrixPtr[i]);
-        matrixPtr[i] = NULL;
+        free(matrixPtr[rowIndex]);
+        matrixPtr[rowIndex] = NULL;
     }
 
     free(matrixPtr);
@@ -159,16 +160,16 @@ void freeMatrix(int** matrixPtr, int size)
 
 int main(void)
 {
-    int size = 0;
+    int matrixSize = 0;
 
     printf("Enter matrix size (%d-%d): ", MIN_MATRIX_SIZE, MAX_MATRIX_SIZE);
-    if (scanf("%d", &size) != 1)
+    if (scanf("%d", &matrixSize) != 1)
     {
         fprintf(stderr, "Error: Invalid input.\n");
         return EXIT_FAILURE;
     }
 
-    if (size < MIN_MATRIX_SIZE || size > MAX_MATRIX_SIZE)
+    if (matrixSize < MIN_MATRIX_SIZE || matrixSize > MAX_MATRIX_SIZE)
     {
         fprintf(stderr, "Error: Matrix size must be between %d and %d.\n",
                 MIN_MATRIX_SIZE, MAX_MATRIX_SIZE);
@@ -177,36 +178,36 @@ int main(void)
 
     srand((unsigned int)time(NULL));
 
-    int** matrixPtr = malloc(size * sizeof(int*));
+    int** matrixPtr = malloc(matrixSize * sizeof(int*));
     if (matrixPtr == NULL)
     {
         fprintf(stderr, "Error: Memory allocation failed for matrix.\n");
         return EXIT_FAILURE;
     }
 
-    for (int i = 0; i < size; ++i)
+    for (int rowIndex = 0; rowIndex < matrixSize; ++rowIndex)
     {
-        matrixPtr[i] = malloc(size * sizeof(int));
-        if (matrixPtr[i] == NULL)
+        matrixPtr[rowIndex] = malloc(matrixSize * sizeof(int));
+        if (matrixPtr[rowIndex] == NULL)
         {
-            fprintf(stderr, "Error: Memory allocation failed for row %d.\n", i);
-            freeMatrix(matrixPtr, i);
+            fprintf(stderr, "Error: Memory allocation failed for row %d.\n", rowIndex);
+            freeMatrix(matrixPtr, rowIndex);
             return EXIT_FAILURE;
         }
     }
 
-    generateMatrix(matrixPtr, size);
+    generateMatrix(matrixPtr, matrixSize);
     printf("\nOriginal Matrix:\n");
-    displayMatrix(matrixPtr, size);
+    displayMatrix(matrixPtr, matrixSize);
 
-    rotateMatrix(matrixPtr, size);
+    rotateMatrix(matrixPtr, matrixSize);
     printf("\nMatrix After 90-Degree Rotation:\n");
-    displayMatrix(matrixPtr, size);
+    displayMatrix(matrixPtr, matrixSize);
 
-    applySmoothingFilter(matrixPtr, size);
+    applySmoothingFilter(matrixPtr, matrixSize);
     printf("\nMatrix After 3x3 Smoothing Filter:\n");
-    displayMatrix(matrixPtr, size);
+    displayMatrix(matrixPtr, matrixSize);
 
-    freeMatrix(matrixPtr, size);
+    freeMatrix(matrixPtr, matrixSize);
     return EXIT_SUCCESS;
 }
