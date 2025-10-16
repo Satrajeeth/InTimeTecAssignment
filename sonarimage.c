@@ -2,207 +2,211 @@
 #include <stdlib.h>
 #include <time.h>
 
-void generateMatrix(int** matrix, int size)
+#define MIN_MATRIX_SIZE 2
+#define MAX_MATRIX_SIZE 10
+#define MAX_RANDOM_VALUE 256
+
+// Function prototypes
+void generateMatrix(int** matrixPtr, int size);
+void displayMatrix(int* const* matrixPtr, int size);
+void rotateMatrix(int** matrixPtr, int size);
+void applySmoothingFilter(int** matrixPtr, int size);
+void freeMatrix(int** matrixPtr, int size);
+
+void generateMatrix(int** matrixPtr, int size)
 {
-    if (matrix == NULL || size <= 0)
+    if (matrixPtr == NULL || size <= 0)
     {
         return;
     }
-    
+
     for (int i = 0; i < size; ++i)
     {
-        int* rowPtr = *(matrix + i);
+        int* rowPtr = matrixPtr[i];
         for (int j = 0; j < size; ++j)
         {
-            *(rowPtr + j) = rand() % 256;
+            rowPtr[j] = rand() % MAX_RANDOM_VALUE;
         }
     }
 }
 
-void displayMatrix(int** matrix, int size)
+void displayMatrix(int* const* matrixPtr, int size)
 {
-    if (matrix == NULL || size <= 0)
+    if (matrixPtr == NULL || size <= 0)
     {
         return;
     }
-    
+
     for (int i = 0; i < size; ++i)
     {
-        int* rowPtr = *(matrix + i);
+        const int* rowPtr = matrixPtr[i];
         for (int j = 0; j < size; ++j)
         {
-            printf("%3d ", *(rowPtr + j));
+            printf("%3d ", rowPtr[j]);
         }
         printf("\n");
     }
 }
 
-void rotateMatrix(int** matrix, int size)
+void rotateMatrix(int** matrixPtr, int size)
 {
-    if (matrix == NULL || size <= 0)
+    if (matrixPtr == NULL || size <= 0)
     {
         return;
     }
-    
+
+    // Transpose
     for (int i = 0; i < size; ++i)
     {
         for (int j = i + 1; j < size; ++j)
         {
-            int* rowI = *(matrix + i);
-            int* rowJ = *(matrix + j);
-            
-            int temp = *(rowI + j);
-            *(rowI + j) = *(rowJ + i);
-            *(rowJ + i) = temp;
+            int temp = matrixPtr[i][j];
+            matrixPtr[i][j] = matrixPtr[j][i];
+            matrixPtr[j][i] = temp;
         }
     }
-    
+
+    // Reverse rows
     for (int i = 0; i < size / 2; ++i)
     {
-        int* temp = *(matrix + i);
-        *(matrix + i) = *(matrix + (size - 1 - i));
-        *(matrix + (size - 1 - i)) = temp;
+        int* temp = matrixPtr[i];
+        matrixPtr[i] = matrixPtr[size - 1 - i];
+        matrixPtr[size - 1 - i] = temp;
     }
 }
 
-void applySmoothingFilter(int** matrix, int size)
+void applySmoothingFilter(int** matrixPtr, int size)
 {
-    if (matrix == NULL || size <= 0)
+    if (matrixPtr == NULL || size <= 0)
     {
         return;
     }
-    
-    int* tempRow = (int*)malloc(size * sizeof(int));
-    if (tempRow == NULL)
+
+    int* tempRow = malloc(size * sizeof(int));
+    int* prevRow = malloc(size * sizeof(int));
+
+    if (tempRow == NULL || prevRow == NULL)
     {
-        fprintf(stderr, "Memory allocation failed\n");
-        return;
-    }
-    
-    int* prevRow = (int*)malloc(size * sizeof(int));
-    if (prevRow == NULL)
-    {
+        fprintf(stderr, "Error: Memory allocation failed in smoothing filter.\n");
         free(tempRow);
+        free(prevRow);
         return;
     }
-    
+
     for (int i = 0; i < size; ++i)
     {
-        int* currentRow = *(matrix + i);
-        int* nextRow = (i < size - 1) ? *(matrix + i + 1) : NULL;
-        
+        int* currentRow = matrixPtr[i];
+        int* nextRow = (i < size - 1) ? matrixPtr[i + 1] : NULL;
+
+        // Backup current row
         for (int j = 0; j < size; ++j)
         {
-            *(tempRow + j) = *(currentRow + j);
+            tempRow[j] = currentRow[j];
         }
-        
+
         for (int j = 0; j < size; ++j)
         {
             int sum = 0;
             int count = 0;
-            
+
             for (int di = -1; di <= 1; ++di)
             {
                 for (int dj = -1; dj <= 1; ++dj)
                 {
                     int ni = i + di;
                     int nj = j + dj;
-                    
+
                     if (ni >= 0 && ni < size && nj >= 0 && nj < size)
                     {
-                        int value;
-                        
-                        if (ni == i - 1)
-                        {
-                            value = *(prevRow + nj);
-                        }
-                        else if (ni == i)
-                        {
-                            value = *(tempRow + nj);
-                        }
-                        else
-                        {
-                            value = *(nextRow + nj);
-                        }
-                        
+                        int value = (ni == i - 1) ? prevRow[nj] :
+                                    (ni == i)     ? tempRow[nj] :
+                                                    nextRow[nj];
+
                         sum += value;
                         ++count;
                     }
                 }
             }
-            
-            *(currentRow + j) = sum / count;
+
+            currentRow[j] = sum / count;
         }
-        
+
         for (int j = 0; j < size; ++j)
         {
-            *(prevRow + j) = *(tempRow + j);
+            prevRow[j] = tempRow[j];
         }
     }
-    
+
     free(tempRow);
     free(prevRow);
+}
+
+void freeMatrix(int** matrixPtr, int size)
+{
+    if (matrixPtr == NULL)
+    {
+        return;
+    }
+
+    for (int i = 0; i < size; ++i)
+    {
+        free(matrixPtr[i]);
+        matrixPtr[i] = NULL;
+    }
+
+    free(matrixPtr);
 }
 
 int main(void)
 {
     int size = 0;
-    
-    printf("Enter matrix size (2-10): ");
+
+    printf("Enter matrix size (%d-%d): ", MIN_MATRIX_SIZE, MAX_MATRIX_SIZE);
     if (scanf("%d", &size) != 1)
     {
-        fprintf(stderr, "Invalid input\n");
-        return 1;
+        fprintf(stderr, "Error: Invalid input.\n");
+        return EXIT_FAILURE;
     }
-    
-    if (size < 2 || size > 10)
+
+    if (size < MIN_MATRIX_SIZE || size > MAX_MATRIX_SIZE)
     {
-        fprintf(stderr, "Matrix size must be between 2 and 10\n");
-        return 1;
+        fprintf(stderr, "Error: Matrix size must be between %d and %d.\n",
+                MIN_MATRIX_SIZE, MAX_MATRIX_SIZE);
+        return EXIT_FAILURE;
     }
-    
+
     srand((unsigned int)time(NULL));
-    
-    int** matrix = (int**)malloc(size * sizeof(int*));
-    if (matrix == NULL)
+
+    int** matrixPtr = malloc(size * sizeof(int*));
+    if (matrixPtr == NULL)
     {
-        fprintf(stderr, "Memory allocation failed\n");
-        return 1;
+        fprintf(stderr, "Error: Memory allocation failed for matrix.\n");
+        return EXIT_FAILURE;
     }
-    
+
     for (int i = 0; i < size; ++i)
     {
-        *(matrix + i) = (int*)malloc(size * sizeof(int));
-        if (*(matrix + i) == NULL)
+        matrixPtr[i] = malloc(size * sizeof(int));
+        if (matrixPtr[i] == NULL)
         {
-            for (int j = 0; j < i; ++j)
-            {
-                free(*(matrix + j));
-            }
-            free(matrix);
-            return 1;
+            fprintf(stderr, "Error: Memory allocation failed for row %d.\n", i);
+            freeMatrix(matrixPtr, i);
+            return EXIT_FAILURE;
         }
     }
-    
-    generateMatrix(matrix, size);
-    printf("\nOriginal Randomly Generated Matrix:\n");
-    displayMatrix(matrix, size);
-    
-    rotateMatrix(matrix, size);
-    printf("\nMatrix after 90 Degree Clockwise Rotation:\n");
-    displayMatrix(matrix, size);
-    
-    applySmoothingFilter(matrix, size);
-    printf("\nMatrix after Applying 3x3 Smoothing Filter:\n");
-    displayMatrix(matrix, size);
-    
-    for (int i = 0; i < size; ++i)
-    {
-        free(*(matrix + i));
-        *(matrix + i) = NULL;
-    }
-    free(matrix);
-    matrix = NULL;
-    
-    return 0;
+
+    generateMatrix(matrixPtr, size);
+    printf("\nOriginal Matrix:\n");
+    displayMatrix(matrixPtr, size);
+
+    rotateMatrix(matrixPtr, size);
+    printf("\nMatrix After 90-Degree Rotation:\n");
+    displayMatrix(matrixPtr, size);
+
+    applySmoothingFilter(matrixPtr, size);
+    printf("\nMatrix After 3x3 Smoothing Filter:\n");
+    displayMatrix(matrixPtr, size);
+
+    freeMatrix(matrixPtr, size);
+    return EXIT_SUCCESS;
 }
