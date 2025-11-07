@@ -1,17 +1,13 @@
-# InTimeTecAssignment
+mkdir name
+create filename
+write filename “data”
+read filename
+delete filename
+rmdir foldername
+ls
+cd foldername
+cd ..
+pwd
+df
+exit
 
-Understanding of the problem :
-
-Must take String input 
-
-Do operations like * + - 
-
-Ignore Whitespaes 
-
-Output in int and division must be integer division 
-
-Must also check division by zero 
-
-Must check for invalid characters 
-
-Follow BODMAS 
