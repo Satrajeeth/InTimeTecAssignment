@@ -5,6 +5,10 @@
 #define BLOCK_SIZE 512
 #define NUM_BLOCKS 128
 #define MAX_NAME 50
+#define MAX_PATH 512
+#define MAX_CMD 100
+#define MAX_ARG1 50
+#define MAX_ARG2 200
 
 typedef struct FreeBlock 
 {
@@ -46,7 +50,7 @@ void initVfs()
         {
             return;
         }
-        newBlock->index = i;
+        newBlock->index = i; 
         newBlock->next = gFreeList;
         gFreeList = newBlock;
     }
@@ -91,11 +95,11 @@ void freeBlock(int index)
 
 void cmdPwd() 
 {
-    char path[512] = "";
+    char path[MAX_PATH] = "";
     Directory *cur = gCwd;
     while (cur != NULL && cur != gRoot) 
     {
-        char temp[512];
+        char temp[MAX_PATH];
         sprintf(temp, "/%s%s", cur->name, path);
         strcpy(path, temp);
         cur = cur->parent;
@@ -339,9 +343,9 @@ void cmdDf()
 int main() 
 {
     initVfs();
-    char cmd[100];
-    char arg1[50];
-    char arg2[200];
+    char cmd[MAX_CMD];
+    char arg1[MAX_ARG1];
+    char arg2[MAX_ARG2];
 
     while (1) 
     {
