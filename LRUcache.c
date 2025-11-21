@@ -15,92 +15,118 @@ typedef struct {
     Node *map[10000];
 } LRUCache;
 
-LRUCache *cache;
+LRUCache *gCache;
 
 unsigned int hash(int k){
     return (unsigned int)k % 10000;
 }
 
-void removeNode(Node *n){
-    if(n->prev) n->prev->next = n->next;
-    if(n->next) n->next->prev = n->prev;
-    if(n == cache->head) cache->head = n->next;
-    if(n == cache->tail) cache->tail = n->prev;
+void removeNode(Node *node){
+    if(node->prev) {
+        node->prev->next = node->next;
+    }
+    if(node->next) {
+        node->next->prev = node->prev;
+    }
+    if(node == gCache->head) {
+        gCache->head = node->next;
+    }
+    if(node == gCache->tail) {
+        gCache->tail = node->prev;
+    }
 }
 
-void insertFront(Node *n){
-    n->prev = NULL;
-    n->next = cache->head;
-    if(cache->head) cache->head->prev = n;
-    cache->head = n;
-    if(cache->tail == NULL) cache->tail = n;
+void insertFront(Node *node){
+    node->prev = NULL;
+    node->next = gCache->head;
+    if(gCache->head) {
+        gCache->head->prev = node;
+    }
+    gCache->head = node;
+    if(gCache->tail == NULL) {
+        gCache->tail = node;
+    }
 }
 
 void createCache(int capacity){
-    cache = malloc(sizeof(LRUCache));
-    cache->capacity = capacity;
-    cache->size = 0;
-    cache->head = cache->tail = NULL;
-    for(int i=0;i<10000;i++) cache->map[i] = NULL;
+    gCache = malloc(sizeof(LRUCache));
+    gCache->capacity = capacity;
+    gCache->size = 0;
+    gCache->head = gCache->tail = NULL;
+    for(int i = 0; i < 10000; i++) {
+        gCache->map[i] = NULL;
+    }
 }
 
 char* get(int key){
-    unsigned int h = hash(key);
-    Node *n = cache->map[h];
-    while(n && n->key != key) n = n->next;
-    if(!n) return "NULL";
-    removeNode(n);
-    insertFront(n);
-    return n->value;
+    unsigned int hashIndex = hash(key);
+    Node *node = gCache->map[hashIndex];
+    while(node && node->key != key) {
+        node = node->next;
+    }
+    if(!node) {
+        return "NULL";
+    }
+    removeNode(node);
+    insertFront(node);
+    return node->value;
 }
 
 void put(int key, char *value){
-    unsigned int h = hash(key);
-    Node *n = cache->map[h];
-    Node *prev = NULL;
-    while(n && n->key != key){ prev = n; n = n->next; }
-    if(n){
-        strcpy(n->value, value);
-        removeNode(n);
-        insertFront(n);
+    unsigned int hashIndex = hash(key);
+    Node *node = gCache->map[hashIndex];
+    while(node && node->key != key) {
+        node = node->next;
+    }
+    if(node){
+        strcpy(node->value, value);
+        removeNode(node);
+        insertFront(node);
         return;
     }
-    if(cache->size == cache->capacity){
-        Node *del = cache->tail;
-        unsigned int hh = hash(del->key);
-        Node *t = cache->map[hh], *tp = NULL;
-        while(t && t->key != del->key){ tp = t; t = t->next; }
-        if(tp) tp->next = t->next;
-        else cache->map[hh] = t->next;
-        removeNode(del);
-        free(del);
-        cache->size--;
+    if(gCache->size == gCache->capacity){
+        Node *nodeToDelete = gCache->tail;
+        unsigned int delHash = hash(nodeToDelete->key);
+        Node *bucketNode = gCache->map[delHash];
+        Node *prevBucketNode = NULL;
+        while(bucketNode && bucketNode->key != nodeToDelete->key) {
+            prevBucketNode = bucketNode;
+            bucketNode = bucketNode->next;
+        }
+        if(prevBucketNode) {
+            prevBucketNode->next = bucketNode->next;
+        } else {
+            gCache->map[delHash] = bucketNode->next;
+        }
+        removeNode(nodeToDelete);
+        free(nodeToDelete);
+        gCache->size--;
     }
     Node *newNode = malloc(sizeof(Node));
     newNode->key = key;
     strcpy(newNode->value, value);
     newNode->prev = newNode->next = NULL;
     insertFront(newNode);
-    newNode->next = cache->map[h];
-    cache->map[h] = newNode;
-    cache->size++;
+    newNode->next = gCache->map[hashIndex];
+    gCache->map[hashIndex] = newNode;
+    gCache->size++;
 }
 
 int main(){
     char cmd[20];
     while(scanf("%s", cmd) != EOF){
         if(strcmp(cmd, "createCache") == 0){
-            int c; scanf("%d", &c);
-            createCache(c);
+            int capacity; scanf("%d", &capacity);
+            createCache(capacity);
         }
         else if(strcmp(cmd, "put") == 0){
-            int k; char v[101];
-            scanf("%d %s", &k, v);
-            put(k, v);
+            int key; char valueBuf[101];
+            scanf("%d %s", &key, valueBuf);
+            put(key, valueBuf);
         }
         else if(strcmp(cmd, "get") == 0){
-            int k; scanf("%d", &k);
-            printf("%s\n", get(k));
+            int key; scanf("%d", &key);
+            printf("%s\n", get(key));
         }
         else if(strcmp(cmd, "exit") == 0){
             break;
